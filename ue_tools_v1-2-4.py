@@ -19,8 +19,8 @@
 bl_info = {
     "name": "UE4 Tools",
     "author": "LluisGarcia3D",
-    "version": (1, 2,3),
-    "blender": (2, 7, 4),
+    "version": (1, 2, 4),
+    "blender": (2, 7, 5),
     "location": "View3D > Tools > UE4 Tools",
     "description": "Adds some tools for improve the blender to unreal engine workflow",
     "warning": "",
@@ -41,6 +41,7 @@ from mathutils import Matrix
 from bpy.props import BoolProperty
 from bpy.props import *
 from bpy.app.handlers import persistent
+from math import radians
 
 @persistent
 def load_handler(dummy):
@@ -117,6 +118,7 @@ UE_ShowRigExport=False
 
 RIG_name = "HeroTPP"
 Include_hero = True
+HeroLow = False
 Rotate_character=False
 Rotate_Armature = False
 UE_Custom_RIG_Name = ""
@@ -135,7 +137,7 @@ FBX_CustomExportName=""
 FBX_AssetType = "STATIC"
 FBX_Format = "BIN7400"
 FBX_ExportCollision= False
-FBX_Global_scale = 0.01
+FBX_Global_scale = 1
 FBX_Tangent=True
 FBX_Bake_Anim = False
 FBX_NLA = False
@@ -148,8 +150,9 @@ FBX_AxisForward='-Z'
 FBX_AxisUp = 'Y'
 FBX_ShowAxis = False
 FBX_PivotToCenter = False
-FBX_Smoothing = True
-FBX_SmothingType = "FACE"
+FBX_Smoothing = 0
+FBX_smooth_Type= "OFF"
+FBXSmoothingType = 'OFF'
 
 
 #-------------------------------------------
@@ -173,8 +176,6 @@ def UE_Rename_Tools_Callback (scene,context):
 def UE_Export_Tools_Callback (scene,context):    
     
     global UE_ExportTools
-    current_scene = bpy.context.scene    
-    
     UE_ExportTools = scene.UEExportTools
     
 
@@ -221,11 +222,6 @@ def Main_UI_Properties(scn):
     scn['UEAnimationTools'] = False
 
 
-#Main_UI_Properties(bpy.context.scene)
-
-
-
-
 #-------------------------------------------
 #--------STORE SCENE SETTINGS PROPS---------
 #-------------------------------------------
@@ -251,8 +247,6 @@ def SetObjScale(scn):
         description = "True or False?")        
      scn['UEObjScale'] = ObjScale
      return
-
-#SetObjScale(bpy.context.scene)
 
 
 #-------------------------------------------
@@ -442,7 +436,7 @@ def Rename_Properties(scn):
 
      
 
-#Rename_Properties(bpy.context.scene)
+
 
 
 #-------------------------------------------
@@ -587,7 +581,12 @@ def FBX_Axis_Up_Callback (scene,context):
     FBX_AxisUp = scene.FBX_Axis_Up
     print(FBX_AxisUp)
 
-
+def FBX_Smoothing_Selector_Callback (scene,context):
+    
+    global FBXSmoothingType
+    FBXSmoothingType = scene.FBX_Smoothing
+    print (str(FBXSmoothingType))
+    
 def FBX_Base_Name_Selector_Callback (scene,context):
         
     global FBXBaseNameSelector
@@ -600,57 +599,12 @@ def FBX_Relative_Assets_Folder_Callback (scene,context):
     FBXRelativeFolderSelector = scene.FBX_Relative_Assets_Folder 
     print ("Base name = " + str(FBXRelativeFolderSelector))
     
-def FBX_Asset_Type_Callback (scene,context):    
-    
-    global FBX_AssetType
-    FBX_AssetType = scene.FBX_AssetTypeSelector 
-    print ("Base name = " + str(FBX_AssetType))
-    
-    if FBX_AssetType == "STATIC":
-        scene.FBX_FormatSelector = "BIN7400"
-        scene.FBX_BakeAnim = False
-        scene.FBX_Use_NLA = False
-        scene.FBX_All_Actions = False
-        scene.FBX_Use_Anim = False
-        scene.FBX_All_Actions_61= False
-        
-        
-    if FBX_AssetType == "ANIMATED" or FBX_AssetType == "ANIMATION" and BX_Format == "BIN7400":
-        scene.FBX_BakeAnim = True
-        scene.FBX_Use_NLA = False
-        scene.FBX_All_Actions = True
-        scene.FBX_Pivot_to_Center= False
-        scene.FBX_Export_Collision_Obj = False
-    if FBX_AssetType == "ANIMATED" or FBX_AssetType == "ANIMATION" and BX_Format == "ASCII6100":
-        scene.FBX_Use_Anim = True
-        scene.FBX_All_Actions_61= True
-        scene.FBX_Pivot_to_Center= False
-        scene.FBX_Export_Collision_Obj = False       
-            
-    
-def FBX_Format_Callback  (scene,context):    
-    
-    global FBX_Format
-    current_scene = bpy.context.scene
-    current_scale = bpy.data.scenes[current_scene.name].unit_settings.scale_length
-    
-    FBX_Format = scene.FBX_FormatSelector 
-    
-    if FBX_Format == 'BIN7400':
-            scene.FBX_GlobalScale  = current_scale
-      
     
 def FBX_Export_Collision_Callback  (scene,context):    
     
     global FBX_ExportCollision
     FBX_ExportCollision = scene.FBX_Export_Collision_Obj
     print ("Base name = " + str(FBX_ExportCollision))
-    
-def FBX_GlobalScale_Callback (scene,context):  
-         
-    global FBX_Global_scale
-    FBX_Global_scale = scene.FBX_GlobalScale
-    print ("Base name = " + str(FBX_Global_scale))
     
     
 def FBX_TangentSpace_Callback (scene,context):    
@@ -708,18 +662,7 @@ def FBX_Pivot_To_Center_Callback (scene,context):
     FBX_PivotToCenter = scene.FBX_Pivot_to_Center
     print ("Base name = " + str(FBX_PivotToCenter))  
     
-def FBX_All_SmoothingFaces_Callback(scene,context):
-    
-     global FBX_Smoothing
-     global FBX_SmothingType
-     FBX_Smoothing = scene.FBX_SmoothingFaces
-     
-     print(FBX_Smoothing )
-     
-     if FBX_Smoothing == True:
-         FBX_SmothingType = "FACE"
-     if FBX_Smoothing == False:
-         FBX_SmothingType = "OFF"  
+
     
 
 #-------------------------------------------
@@ -727,14 +670,24 @@ def FBX_All_SmoothingFaces_Callback(scene,context):
 #-------------------------------------------
 def FBX_Export_Properties(scn):
     
-     #Use Smoothing faces?    
-    bpy.types.Scene.FBX_SmoothingFaces = BoolProperty(
-        name = "Smoothing faces on?",
-        default=True,
-        update = FBX_All_SmoothingFaces_Callback, 
-        description = "Export the mesh with Smothing Faces On or off( if you want export Low poly art uncheck it)")
-    scn['FBX_SmoothingFaces'] = True
+    #Use Smoothing faces?
     
+    #Smoothing items
+    FBX_smooth_Type = [
+                    ('OFF', 'OFF', 'OFF'),
+                    ('FACE', 'FACE', 'FACE'),
+                    ('EDGE', 'EDGE' ,'EDGE')
+                    ]
+    
+    #Smoothing
+    bpy.types.Scene.FBX_Smoothing = EnumProperty(
+        items = FBX_smooth_Type,                      
+        name = "FBX Smooth type used:",
+        default = 'OFF',
+        update = FBX_Smoothing_Selector_Callback,
+        description='Smoothing type for the objects')
+    scn['FBX_Smoothing'] = 0    
+
     #Pivot To center
     bpy.types.Scene.FBX_Pivot_to_Center = BoolProperty(
         name = "Pivot To Center",
@@ -835,39 +788,8 @@ def FBX_Export_Properties(scn):
         subtype = 'DIR_PATH')
     scn['FBX_Custom_Export_Path'] = ""
     
-    #Is Static Mesh?
-    #Type of mesh
-    FBX_Asset_types = [
-                    ('STATIC', 'Static', 'Static'),
-                    ('ANIMATED', 'Animated', 'Animated'),
-                    ('ANIMATION', 'Animation', 'Animation')
-                    ]
-    
-   #Asset Type
-    bpy.types.Scene.FBX_AssetTypeSelector = EnumProperty(
-        items = FBX_Asset_types,                      
-        name = "Asset Types",
-        default = "STATIC",
-        update = FBX_Asset_Type_Callback,
-        description='Type of the Asset To Export')
-    scn['FBX_AssetTypeSelector'] = 0
-    
-    
-    #Formats List
-    FBX_Formats_available = [
-                    ('BIN7400', 'BIN 7400', 'BIN7400'),
-                    ('ASCII6100', 'ASCII 6100', 'Animated')
-                    ]    
-    
-    
-    #FBX Format
-    bpy.types.Scene.FBX_FormatSelector = EnumProperty(
-        items = FBX_Formats_available,                      
-        name = "FBX Export Format",
-        default = "BIN7400",
-        update = FBX_Format_Callback,
-        description='Choose the Format for the FBX')
-    scn['FBX_FormatSelector'] = 0
+
+
     
     #Export Collision Objects too
     bpy.types.Scene.FBX_Export_Collision_Obj = BoolProperty(
@@ -877,15 +799,7 @@ def FBX_Export_Properties(scn):
         description = "Export Collision Objects along selected objects")
     scn['FBX_Export_Collision_Obj'] = False   
     
-    #Global Scale
-    current_scene = bpy.context.scene
-    current_scale = bpy.data.scenes[current_scene.name].unit_settings.scale_length
-    
-    bpy.types.Scene.FBX_GlobalScale = FloatProperty(
-        name = "Global scale",
-        default=current_scale,
-        update= FBX_GlobalScale_Callback)
-    scn['FBX_GlobalScale'] = current_scale
+
     
     #Use Tangent Space ?
     bpy.types.Scene.FBX_TangentSpace = BoolProperty(
@@ -938,21 +852,7 @@ def FBX_Export_Properties(scn):
         update= FBX_Anim_Simplify_Callback)
     scn['FBX_Anim_Simplify'] = 1
     
-    #Include Animation (ASCII 6100) ?
-    bpy.types.Scene.FBX_Use_Anim = BoolProperty(
-        name = "Animation",
-        default=False,
-        update = FBX_Use_Anim_Callback, 
-        description = "Export keyframe animation")
-    scn['FBX_Use_Anim'] = False 
-    
-    #Use All Actions (ASCII 6100)?
-    bpy.types.Scene.FBX_All_Actions_61 = BoolProperty(
-        name = "Use All actions",
-        default=True,
-        update = FBX_All_Actions_61_Callback, 
-        description = "Export all actions for armatures or just the currently selected action")
-    scn['FBX_All_Actions_61'] = True
+
     
                  
   
@@ -1043,7 +943,7 @@ def FBX_Export(self,context):
         
     #Paths
     #FBX_ExportRelativePath = bpy.path.relpath("//UE Assets")
-    FBX_ExportRelativePath = bpy.path.abspath("//UE Assets")        
+    FBX_ExportRelativePath = bpy.path.abspath("//UE4 Assets")        
     FBX_ExportCustom = bpy.path.abspath(FBX_ExportCustomPath)         
                       
     if FBXRelativeFolderSelector == True:
@@ -1054,17 +954,7 @@ def FBX_Export(self,context):
         Folder = FBX_ExportCustom
         
     #Profiles:
-    if FBX_AssetType == "STATIC":                  
-            
-        FBX_objTypes = {'MESH'}             
-            
-            
-    if FBX_AssetType == "ANIMATED" or FBX_AssetType == "ANIMATION":
-            
-        if FBX_AssetType == "ANIMATED":
-            FBX_objTypes = {'ARMATURE', 'MESH'}
-        if FBX_AssetType == "ANIMATION":
-            FBX_objTypes = {'ARMATURE'}
+    
     
     if FBX_PivotToCenter == False and FBX_ExportCollision == True:
         FBX_SelectCollsionObjects (self,context)    
@@ -1075,33 +965,18 @@ def FBX_Export(self,context):
     bpy.ops.export_scene.fbx(check_existing=True,
                              filepath= Folder + '/'+ FBX_name +'.fbx',
                              filter_glob="*.fbx",
-                             version=FBX_Format,
+                             version='BIN7400',
                              use_selection=True, 
-                             global_scale=FBX_Global_scale,
+                             apply_unit_scale=True,
                              axis_forward=FBX_AxisForward,
                              axis_up=FBX_AxisUp,
                              bake_space_transform=True,
-                             object_types=FBX_objTypes,
+                             object_types= {'MESH'},
                              use_mesh_modifiers=True,
-                             mesh_smooth_type='OFF', 
+                             mesh_smooth_type=FBXSmoothingType, 
                              use_mesh_edges=False, 
-                             use_tspace=FBX_Tangent,
-                             use_custom_props=True,
-                             add_leaf_bones=False,
-                             primary_bone_axis='Y',
-                             secondary_bone_axis='X',
-                             use_armature_deform_only=True,
-                             bake_anim=FBX_Bake_Anim,
-                             bake_anim_use_all_bones =True,
-                             bake_anim_use_nla_strips=FBX_NLA,
-                             bake_anim_use_all_actions=FBX_AllActions,
-                             bake_anim_step=FBX_AnimStep,
-                             bake_anim_simplify_factor=FBX_AnimSimplify,
-                             use_anim=FBX_UseAnim,
-                             use_anim_action_all=FBX_AllActions61,
-                             use_default_take=False,
-                             use_anim_optimize=True,
-                             anim_optimize_precision=6.0,
+                             use_tspace=True,
+                             use_custom_props=True,                             
                              path_mode='AUTO',
                              embed_textures=False, 
                              batch_mode='OFF', 
@@ -1115,7 +990,7 @@ def FBX_Export(self,context):
         print("no collision exported") 
         
     FBX_ExportCustomPath = ""
-    #FBX_name_multi = ""
+    
     
     
     print ("Export OK")    
@@ -1218,31 +1093,20 @@ def FBX_Export_Character(self,context):
                              filter_glob="*.fbx",
                              version='BIN7400',
                              use_selection=True, 
-                             global_scale=FBX_Global_scale,
                              axis_forward=FBX_AxisForward,
                              axis_up=FBX_AxisUp,
                              bake_space_transform=False,
+                             apply_unit_scale=True,
                              object_types={'ARMATURE', 'MESH'},
                              use_mesh_modifiers=True,
-                             mesh_smooth_type='OFF', 
+                             mesh_smooth_type=FBXSmoothingType,
                              use_mesh_edges=False, 
-                             use_tspace=FBX_Tangent,
+                             use_tspace=True,
                              use_custom_props=False,
                              add_leaf_bones=False,
                              primary_bone_axis='Y',
                              secondary_bone_axis='X',
                              use_armature_deform_only=True,
-                             bake_anim=False,
-                             bake_anim_use_all_bones =True,
-                             bake_anim_use_nla_strips=False,
-                             bake_anim_use_all_actions=False,
-                             bake_anim_step=FBX_AnimStep,
-                             bake_anim_simplify_factor=FBX_AnimSimplify,
-                             use_anim=False,
-                             use_anim_action_all=False,
-                             use_default_take=False,
-                             use_anim_optimize=False,
-                             anim_optimize_precision=6.0,
                              path_mode='AUTO',
                              embed_textures=False, 
                              batch_mode='OFF', 
@@ -1299,16 +1163,11 @@ def FBX_Export_BakedAnimation(self,context):
                              filter_glob="*.fbx",
                              version='BIN7400',
                              use_selection=True, 
-                             global_scale=FBX_Global_scale,
+                             apply_unit_scale=True,
                              axis_forward=FBX_AxisForward,
                              axis_up=FBX_AxisUp,
                              bake_space_transform=False,
                              object_types={'ARMATURE'},
-                             use_mesh_modifiers=True,
-                             mesh_smooth_type='OFF', 
-                             use_mesh_edges=False, 
-                             use_tspace=FBX_Tangent,
-                             use_custom_props=False,
                              add_leaf_bones=False,
                              primary_bone_axis='Y',
                              secondary_bone_axis='X',
@@ -1329,11 +1188,76 @@ def FBX_Export_BakedAnimation(self,context):
                              batch_mode='OFF', 
                              use_batch_own_dir=False,
                              use_metadata=True)   
-        
     
     print ("Export OK")    
 
 
+
+def FBX_Export_CameraAnimation(self,context):    
+    
+    scn = context.scene       
+        
+    Get_Custom_Path("String:   ", 'FBX_Custom_Export_Path', scn)
+    Get_Custom_ExportName("String:   ", 'FBX_Custom_Export_Path', scn) 
+        
+    #Get Name
+    
+    #ActionName=bpy.context.active_object.animation_data.action.name 
+    objName=bpy.context.scene.objects.active.name
+    
+         
+    if FBXBaseNameSelector == "Object":
+        FBX_name = bpy.context.object.name #+ "_" +ActionName
+            
+    if  FBXBaseNameSelector == "Custom":
+        FBX_name = FBX_CustomExportName #+ "_" +ActionName
+            
+        
+    #Paths
+    #FBX_ExportRelativePath = bpy.path.relpath("//UE Assets")
+    FBX_ExportRelativePath = bpy.path.abspath("//UE4 Assets/")
+    FBX_Animation_Path =  FBX_ExportRelativePath+"/Camera_Animations"     
+    FBX_ExportCustom = bpy.path.abspath(FBX_ExportCustomPath)      
+                      
+    if FBXRelativeFolderSelector == True:
+        Folder = FBX_Animation_Path
+        if not exists(FBX_ExportRelativePath):
+            mkdir(FBX_ExportRelativePath)
+        if not exists(FBX_Animation_Path):
+            mkdir(FBX_Animation_Path)
+    if FBXRelativeFolderSelector == False:
+        Folder = FBX_ExportCustom
+    
+                
+    #Export FBX    
+    
+    bpy.ops.export_scene.fbx(check_existing=True,
+                             filepath= Folder + '/'+ FBX_name +'.fbx',
+                             filter_glob="*.fbx",
+                             version='BIN7400',
+                             use_selection=True, 
+                             apply_unit_scale=True,
+                             axis_forward=FBX_AxisForward,
+                             axis_up=FBX_AxisUp,
+                             bake_space_transform=False,
+                             object_types = {'CAMERA'},
+                             add_leaf_bones=False,
+                             bake_anim=True,
+                             bake_anim_use_all_bones =False,
+                             bake_anim_use_nla_strips=False,
+                             bake_anim_use_all_actions=False,
+                             bake_anim_step=FBX_AnimStep,
+                             bake_anim_simplify_factor=FBX_AnimSimplify,
+                             use_anim=True,
+                             path_mode='AUTO',
+                             embed_textures=False, 
+                             batch_mode='OFF', 
+                             use_batch_own_dir=False,
+                             use_metadata=True)    
+        
+    
+    print ("Export OK") 
+      
 
 
 def UE_Export_Animation(self,context):
@@ -1352,23 +1276,6 @@ def UE_Export_Animation(self,context):
     ArmatureGroups = bpy.context.active_object.pose.bone_groups 
     
     Armature_Rotated=False
-    
-    
-    ############################## 
-    #Uncomment the following lines if you want to use the 180 rotation before export the animation 
-    ##############################    
-    '''
-    
-    if Rotate_Armature == True:
-        bpy.context.space_data.pivot_point = 'MEDIAN_POINT'
-        bpy.ops.transform.rotate(value=-3.14159, axis=(0, 0, 1), constraint_axis=(False, False, True), constraint_orientation='GLOBAL')
-        bpy.ops.object.transform_apply(location=False, rotation=True, scale=False)
-        Armature_Rotated=True
-        
-    else:
-        Armature_Rotated=False
-        
-    '''
     
         
     animationFrames= bpy.context.object.animation_data.action.frame_range[1] 
@@ -1420,20 +1327,7 @@ def UE_Export_Animation(self,context):
         del DeformBonesList[:]
         del EpicExtraBonesList[:]
     
-    ############################## 
-    #Uncomment the following lines if you want to use the 180 rotation before export the animation 
-    ##############################    
     
-    '''
-    if Armature_Rotated == True:
-        bpy.ops.transform.rotate(value=-3.14159, axis=(0, 0, 1), constraint_axis=(False, False, True), constraint_orientation='GLOBAL')
-        bpy.ops.object.transform_apply(location=False, rotation=True, scale=False)
-        Armature_Rotated=False
-    '''    
-    
-    
-    
-  
 def hideIKArmsOFF(): 
     
     BonesList = bpy.context.object.pose.bones
@@ -1496,9 +1390,37 @@ def hideIKlegON():
 #-----------------BUTTONS-------------------
 #-------------------------------------------
 
+#Export Camera Animation
 
-
-
+class UEExportCamera(bpy.types.Operator):
+    """UE Export Camera Button"""
+    bl_idname = "ue.export_camera"
+    bl_label = "Export Camera Animation"
+    
+    def execute (self, context):
+        
+        bpy.ops.transform.rotate(value=1.5708,
+                                 axis=(-0.143126, -0.0365628, 0.989029),
+                                 constraint_axis=(False, True, False), 
+                                 constraint_orientation='LOCAL', 
+                                 mirror=False, proportional='DISABLED', 
+                                 proportional_edit_falloff='SMOOTH', 
+                                 proportional_size=1)
+                                 
+        
+        FBX_Export_CameraAnimation(self,context)
+        
+        bpy.ops.transform.rotate(value=-1.5708,
+                                 axis=(-0.143126, -0.0365625, 0.989029),
+                                 constraint_axis=(False, True, False), 
+                                 constraint_orientation='LOCAL', 
+                                 mirror=False, proportional='DISABLED', 
+                                 proportional_edit_falloff='SMOOTH', 
+                                 proportional_size=1)
+        
+        return {'FINISHED'}
+    
+    
 #Set UE Scale button
 
 class UEScaleOperator(bpy.types.Operator):
@@ -1510,15 +1432,9 @@ class UEScaleOperator(bpy.types.Operator):
         
         scn = context.scene 
         
-       
-        current_scene = bpy.context.scene
-        current_scale = bpy.data.scenes[current_scene.name].unit_settings.scale_length
-        
-        if FBX_Format == 'BIN7400':
-            scn.FBX_GlobalScale  = 0.01   
-        
              
-        unit = context.scene.unit_settings     
+        unit = context.scene.unit_settings 
+        
            
         
         #Set unit and scale lenght      
@@ -1630,7 +1546,6 @@ class InitUEToolsButton(bpy.types.Operator):
         Rename_Properties(bpy.context.scene)
         FBX_Export_Properties(bpy.context.scene)
         Animation_UI_Properties(bpy.context.scene)
-    
         
         
         global Init
@@ -1823,11 +1738,7 @@ class Export_IK_animation(bpy.types.Operator):
     bl_idname = "ue_export_anim.button"
     bl_label = "Export Animation" 
     
-    
-    ############################## 
-    #Uncomment the Next lines, remove the '#' and the multicoment ''' symbols if you want to use the 180 rotation before export the animation     
-    ##############################    
-    
+  
             
     def execute (self, context):
         
@@ -1849,23 +1760,7 @@ class Export_IK_animation(bpy.types.Operator):
          
         return {'FINISHED'}
     
-    '''
-    def invoke(self, context, event):        
-       
-        global Rotate_Armature
-        
-        self.Rotate_Armature_180 = Rotate_Armature                
-        return context.window_manager.invoke_props_dialog(self)    
-       
-        return {'FINISHED'}
-    
-    def draw(self, context):
-        layout = self.layout
-        col = layout.column()
-        row = col.row()
-        row.prop(self, "Rotate_Armature_180")   
-    '''
-    
+  
 #Bake And Export All Animations
 
 def ExportAllAnims_proces(self,context):
@@ -1874,9 +1769,7 @@ def ExportAllAnims_proces(self,context):
     FakeAction=bpy.context.object.animation_data.action
     BonesList = bpy.context.object.pose.bones 
     
-    ############################## 
-    #Uncomment the Next lines, remove the '#' and the multicoment ''' symbols if you want to use the 180 rotation before export the animation     
-    ##############################   
+
     
     #global Rotate_Armature
     
@@ -1884,7 +1777,7 @@ def ExportAllAnims_proces(self,context):
         if action.use_fake_user == True:
             bpy.context.object.animation_data.action = action
             UE_Export_Animation(self,context)
-            #Rotate_Armature = True            
+                    
             bpy.context.object.animation_data.action = None
             bpy.ops.object.mode_set( mode='POSE' )
             for bone in BonesList:
@@ -1892,7 +1785,7 @@ def ExportAllAnims_proces(self,context):
                 bpy.ops.pose.rot_clear()
             bpy.ops.object.mode_set( mode='OBJECT' )
 
-    #Rotate_Armature = False    
+   
     bpy.context.object.animation_data.action =  FakeAction
     
     for action in  ActionList:       
@@ -1905,17 +1798,12 @@ class ExportAllAnims(bpy.types.Operator):
     """bake and export all animations with Fake User"""
     bl_idname = "ue_export_all.button"
     bl_label = "Export All Animations" 
-    
-    ############################## 
-    #Uncomment the Next lines, remove the '#' and the multicoment ''' symbols if you want to use the 180 rotation before export the animation     
-    ##############################   
-    
-    #Rotate_all_anims_180 = BoolProperty(name="Rotate Armature 180º?")  
+ 
     
     
     def execute (self, context):
         
-        #global Rotate_Armature
+      
                         
         if FBXRelativeFolderSelector == True:
                        
@@ -1924,31 +1812,15 @@ class ExportAllAnims(bpy.types.Operator):
             if ActualPath == "":
                 self.report({'ERROR'}, "You need Save the file for use save automatically into a relative folder")
             else:
-                #Rotate_Armature = self.Rotate_all_anims_180
+               
                 ExportAllAnims_proces(self,context)        
         else:
-            #Rotate_Armature = self.Rotate_all_anims_180
+           
             ExportAllAnims_proces(self,context)            
                    
         return {'FINISHED'}
     
-    '''
-    def invoke(self, context, event):        
-       
-        global Rotate_Armature
-        
-        self.Rotate_all_anims_180 = Rotate_Armature                 
-        return context.window_manager.invoke_props_dialog(self)    
-       
-        return {'FINISHED'}
-    
-    def draw(self, context):
-        layout = self.layout
-        col = layout.column()
-        row = col.row()
-        row.prop(self, "Rotate_all_anims_180") 
-        
-    '''
+
 
 #Append Hero button
 
@@ -1959,22 +1831,24 @@ class AppendHeroTPP(bpy.types.Operator):
     
     Custom_RIG_name = StringProperty(name="Custom Name",update = RIG_Name_Callback)
     Include_Hero_value = BoolProperty(name="Include Hero Mesh?")
+    Include_LowRes = BoolProperty(name="Movile version?")
       
     def execute (self, context):
         
         Include_hero = self.Include_Hero_value
         RIG_name= self.Custom_RIG_name
+        HeroLow = self.Include_LowRes
                 
         #Grab the ctive layer before the operation       
-        ActiveLayer = bpy.context.scene.layers.data.active_layer
-        
+        ActiveLayer = bpy.context.scene.layers.data.active_layer        
         
         #ScriptName = bpy.data.texts['ue_tools_v1-2.py'].name
         #ScriptPath = bpy.data.texts['ue_tools_v1-2.py'].filepath
         ScriptDirectory = os.path.dirname(os.path.realpath(__file__)) #bpy.data.texts['ue_tools_v1-2.py'].filepath.strip(ScriptName)
         BlendFileName = "UE4_Mannequinn_Template.blend"
 
-        TemplatePath = os.path.join(ScriptDirectory, BlendFileName, "Object", "Rocket_Mannequin_Mesh")
+        TemplatePath = os.path.join(ScriptDirectory, BlendFileName, "Object", "SK_MannequinMesh")
+        TemplatePathLow = os.path.join(ScriptDirectory, BlendFileName, "Object", "SK_Mannequin_Mobile")
         TemplateDirectory = os.path.join(ScriptDirectory, BlendFileName, "Object", "")
 
         RIG_Armature_name = RIG_name
@@ -1983,35 +1857,75 @@ class AppendHeroTPP(bpy.types.Operator):
         if bpy.data.objects.get(RIG_Armature_name) is not None:
             self.report({'ERROR'}, "Please Give an unique name to the New RIG you already have one "+RIG_name+" on the scene")  
             
-        else:         
-            bpy.ops.wm.link(filepath= TemplatePath,
-                              directory= TemplateDirectory,
-                              filename="Rocket_Mannequin_Mesh",
-                              link=True,
-                              relative_path=True,
-                              autoselect=True,
-                              active_layer=True)
-                                  
-            bpy.ops.object.make_local(type='ALL')
-                
-            #Change the name of the Mesh in case "Include_hero" is true
-                
-            if Include_hero == True:
-                bpy.context.scene.objects.active = bpy.data.objects["Rocket_Mannequin_Mesh"]
-                bpy.data.objects['Rocket_Mannequin_Mesh'].select = True
-                bpy.data.objects['Rocket_Mannequin_Mesh'].name = RIG_Mesh_name
-                bpy.ops.object.select_all(action='DESELECT')
+        else:
+            if Include_hero == True:                        
+                if HeroLow == False:                                                   
+                    bpy.ops.wm.link(filepath= TemplatePath,
+                                      directory= TemplateDirectory,
+                                      filename="SK_MannequinMesh",
+                                      link=True,
+                                      relative_path=True,
+                                      autoselect=True,
+                                      active_layer=True)
+                                              
+                    bpy.ops.object.make_local(type='ALL')
+                    
+                    bpy.context.scene.objects.active = bpy.data.objects["SK_MannequinMesh"]
+                    bpy.data.objects['SK_MannequinMesh'].select = True
+                    bpy.data.objects['SK_MannequinMesh'].name = RIG_Mesh_name
+                    bpy.ops.object.select_all(action='DESELECT')
+                    
+                    bpy.context.scene.objects.active = bpy.data.objects["HeroTPP_Character"]
+                    bpy.data.objects['HeroTPP_Character'].select = True
+                    bpy.data.objects['HeroTPP_Character'].name = RIG_Armature_name 
+                    bpy.ops.object.mode_set( mode='POSE' )
+                   
+                if HeroLow == True:                 
+                    bpy.ops.wm.link(filepath= TemplatePathLow,
+                                      directory= TemplateDirectory,
+                                      filename="SK_Mannequin_Mobile",
+                                      link=True,
+                                      relative_path=True,
+                                      autoselect=True,
+                                      active_layer=True)
+                                              
+                    bpy.ops.object.make_local(type='ALL')
+                    
+                    bpy.context.scene.objects.active = bpy.data.objects["SK_Mannequin_Mobile"]
+                    bpy.data.objects['SK_Mannequin_Mobile'].select = True
+                    bpy.data.objects['SK_Mannequin_Mobile'].name = RIG_Mesh_name
+                    bpy.ops.object.select_all(action='DESELECT')
+                    
+                    bpy.context.scene.objects.active = bpy.data.objects["HeroTPP_Character"]
+                    bpy.data.objects['HeroTPP_Character'].select = True
+                    bpy.ops.object.delete()
+                    
+                    bpy.context.scene.objects.active = bpy.data.objects["HeroTPP_Character_Mobile"]
+                    bpy.data.objects['HeroTPP_Character_Mobile'].select = True
+                    bpy.data.objects['HeroTPP_Character_Mobile'].name = RIG_Armature_name 
+                    bpy.ops.object.mode_set( mode='POSE' )
+                               
             else:
-                bpy.context.scene.objects.active = bpy.data.objects["Rocket_Mannequin_Mesh"]
-                bpy.data.objects['Rocket_Mannequin_Mesh'].select = True
+                bpy.ops.wm.link(filepath= TemplatePath,
+                                      directory= TemplateDirectory,
+                                      filename="SK_MannequinMesh",
+                                      link=True,
+                                      relative_path=True,
+                                      autoselect=True,
+                                      active_layer=True)
+                                      
+                bpy.ops.object.make_local(type='ALL')
+                                      
+                bpy.context.scene.objects.active = bpy.data.objects["SK_MannequinMesh"]
+                bpy.data.objects['SK_MannequinMesh'].select = True
                 bpy.ops.object.delete()
-                         
-            bpy.context.scene.objects.active = bpy.data.objects["HeroTPP_Character"]
-            bpy.data.objects['HeroTPP_Character'].select = True
-            bpy.data.objects['HeroTPP_Character'].name = RIG_Armature_name       
                 
-            bpy.ops.object.mode_set( mode='POSE' )
-    
+                bpy.context.scene.objects.active = bpy.data.objects["HeroTPP_Character"]
+                bpy.data.objects['HeroTPP_Character'].select = True
+                bpy.data.objects['HeroTPP_Character'].name = RIG_Armature_name 
+                bpy.ops.object.mode_set( mode='POSE' )   
+           
+           
        
         return {'FINISHED'}
       
@@ -2019,9 +1933,11 @@ class AppendHeroTPP(bpy.types.Operator):
         
     def invoke(self, context, event):        
        
-        global RIG_name, Include_hero       
+        global RIG_name, Include_hero , HeroLow      
         self.Custom_RIG_name = RIG_name
-        self.Include_Hero_value = Include_hero                  
+        self.Include_Hero_value = Include_hero
+        self.Include_LowRes = HeroLow 
+                         
         return context.window_manager.invoke_props_dialog(self)
       
        
@@ -2041,23 +1957,7 @@ def UE_ExportCharacter(self,context):
     objProps = bpy.context.object
     ArmatureGroups = bpy.context.active_object.pose.bone_groups
     
-    ############################## 
-    #Uncomment the Next lines, remove the '#' and the multicoment ''' symbols if you want to use the 180 rotation before export the animation     
-    ##############################   
-    
-    #Character_Rotated=False
-    
-    ''''    
-    if Rotate_character == True:
-        bpy.context.space_data.pivot_point = 'MEDIAN_POINT'
-        bpy.ops.transform.rotate(value=-3.14159, axis=(0, 0, 1), constraint_axis=(False, False, True), constraint_orientation='GLOBAL')
-        bpy.ops.object.transform_apply(location=False, rotation=True, scale=False)
-        Character_Rotated=True
-        
-    else:
-        Character_Rotated=False
-    
-    '''
+  
     
     #Store bones with groups for export
     if  bpy.context.active_object.type == 'ARMATURE':             
@@ -2104,14 +2004,7 @@ def UE_ExportCharacter(self,context):
         del DeformBonesList[:]
         del EpicExtraBonesList[:]
     
-    '''    
-    if Character_Rotated == True:
-        bpy.ops.transform.rotate(value=-3.14159, axis=(0, 0, 1), constraint_axis=(False, False, True), constraint_orientation='GLOBAL')
-        bpy.ops.object.transform_apply(location=False, rotation=True, scale=False)
-        Character_Rotated=False
-    '''   
-          
-      
+
 
 #Export Character
 class UE_Export_Character(bpy.types.Operator):
@@ -2119,46 +2012,25 @@ class UE_Export_Character(bpy.types.Operator):
     bl_idname = "ue_export_character.button"
     bl_label = "Export Character" 
     
-    ############################## 
-    #Uncomment the Next lines, remove the '#' and the multicoment ''' symbols if you want to use the 180 rotation before export the animation     
-    ##############################  
-    
-    #Rotate_Character_180 = BoolProperty(name="Rotate Character 180º?")  
+  
             
     def execute (self, context):
         
-        #global Rotate_character
-        
+       
         if FBXRelativeFolderSelector == True:           
              ActualPath = dirname(bpy.data.filepath)
               
              if ActualPath == "":
                  self.report({'ERROR'}, "You need Save the file for use save automatically into a relative folder")
              else:
-                 #Rotate_character = self.Rotate_Character_180
+               
                  UE_ExportCharacter(self,context)
         else:
-            #Rotate_character = self.Rotate_Character_180
+           
             UE_ExportCharacter(self,context)
             
         return {'FINISHED'}
-    
-    '''        
-    def invoke(self, context, event):        
-       
-        global Rotate_character  
-        
-        self.Rotate_Character_180 = Rotate_character                  
-        return context.window_manager.invoke_props_dialog(self)    
-       
-        return {'FINISHED'}
-    
-    def draw(self, context):
-        layout = self.layout
-        col = layout.column()
-        row = col.row()
-        row.prop(self, "Rotate_Character_180")   
-    '''
+  
      
      
 #Set Deform Bones Group (for no standar skeletons)
@@ -2554,7 +2426,39 @@ class Mainpanel(bpy.types.Panel):
                 
                 #Check if I have selected object in context(prevent error if change layer)
                 if bpy.context.selected_objects != []:                        
-                    # DO all this only if active object is an ARMATURE               
+                    # DO all this only if active object is an ARMATURE
+                    if  bpy.context.active_object.type == 'CAMERA':
+                        col.operator ("ue.export_camera",text ="Export Camera Animation",icon='FORWARD')
+                        row=box.row()                                
+                        row.prop (scn, 'UE_Show_Export_options')
+                               
+                        if UE_ShowRigExport == True:                                   
+                                
+                            box14=box.box()
+                            col=box14.column()
+                            col.prop (scn,'FBX_Show_Axis')
+                            col.prop (scn,'FBX_Anim_Step')
+                            col.prop (scn,'FBX_Anim_Simplify')
+                            
+                            if FBX_ShowAxis == True:
+                                col.prop (scn,'FBX_Axis_Forward')
+                                col.prop (scn,'FBX_Axis_Up')   
+                           
+                            #name settings
+                            box6 = box.box()
+                            col= box6.column()
+                            row=box6.row(align=True)
+                            col.label(text='FBX Name:') 
+                            row.prop(scn,'FBX_base_name', expand=True)                       
+                            col.prop(scn,'FBX_Export_Custom_Name',text = "Custom Name")
+                                                       
+                            #Folder settings
+                            box14 = box.box()
+                            col= box14.column()
+                            col.label ("Export Directory:")
+                            col.prop(scn,'FBX_Relative_Assets_Folder',text= "Relative: UE Assets") 
+                            col.prop(scn,"FBX_Custom_Export_Path" ,text = "Custom Path")  
+                                   
                     if  bpy.context.active_object.type == 'ARMATURE':                 
                         
                         objProps = bpy.context.object
@@ -2579,9 +2483,10 @@ class Mainpanel(bpy.types.Panel):
                                 
                                     box14=box.box()
                                     col=box14.column()
-                                    col.prop (scn,'FBX_GlobalScale', text= "Scale")
-                                    #col.prop (scn, 'FBX_SmoothingFaces',text="Smoothing Faces")
+                                    col.prop (scn, 'FBX_Smoothing')
                                     col.prop (scn,'FBX_Show_Axis')
+                                    col.prop (scn,'FBX_Anim_Step')
+                                    col.prop (scn,'FBX_Anim_Simplify')
                                     
                                     if FBX_ShowAxis == True:
                                         col.prop (scn,'FBX_Axis_Forward')
@@ -2816,50 +2721,19 @@ class Mainpanel(bpy.types.Panel):
                 #General settings
                 box5 = box.box()
                 col = box5.column()
-                col.label ("Asset Type:")
                 row = box5.row()
-                row.prop (scn, 'FBX_AssetTypeSelector', expand=True)
-                col = box5.column()
-                if FBX_AssetType == "STATIC":
-                    col.prop (scn, 'FBX_Pivot_to_Center')
-                    col.prop (scn,'FBX_Export_Collision_Obj',text= "Export collision")
-                row = box5.row()
+                #row.prop (scn, 'FBX_AssetTypeSelector', expand=True)
+                
                 row.label ("FBX Settings:")
                 col = box5.column()
+                col.prop (scn, 'FBX_Pivot_to_Center')
+                col.prop (scn,'FBX_Export_Collision_Obj',text= "Export collision")
                 
-                if FBX_AssetType == "STATIC":
-                    col.prop (scn,'FBX_FormatSelector',text= "Format")
-                    col.prop (scn,'FBX_GlobalScale', text= "Scale")
-                    col.prop (scn,'FBX_Show_Axis')
-                    if FBX_ShowAxis == True:
-                        col.prop (scn,'FBX_Axis_Forward')
-                        col.prop (scn,'FBX_Axis_Up')          
-                    
-                    col.prop (scn,'FBX_TangentSpace', text="Tangent Space")
-                    #col.prop (scn, 'FBX_SmoothingFaces',text="Smoothing Faces")
-                    
-                if FBX_AssetType == "ANIMATED" or FBX_AssetType == "ANIMATION":
-                                    
-                    col.prop (scn,'FBX_FormatSelector',text= "Format")
-                    col.prop (scn,'FBX_GlobalScale', text= "Scale")
-                    col.prop (scn,'FBX_Show_Axis')
-                    if FBX_ShowAxis == True:
-                        col.prop (scn,'FBX_Axis_Forward')
-                        col.prop (scn,'FBX_Axis_Up') 
-                    col.prop (scn,'FBX_TangentSpace', text="Tangent Space")
-                    #col.prop (scn, 'FBX_SmoothingFaces',text="Smoothing Faces")
-                    if FBX_Format == 'BIN7400':
-                        col.prop (scn,'FBX_BakeAnim', text="Baked Animation")
-                        col.prop (scn,'FBX_Use_NLA', text = "NLA Strips")
-                        col.prop (scn,'FBX_All_Actions', text="All Actions")
-                        col.prop (scn,'FBX_Anim_Step', text= "Sampling Rate")
-                        col.prop (scn,'FBX_Anim_Simplify',text= "Simplify")
-                    if FBX_Format == 'ASCII6100':
-                        col.prop (scn,'FBX_Use_Anim', text="Animation")
-                        col.prop (scn,'FBX_All_Actions_61',text="All Actions") 
-                    
-                             
-                                           
+                col.prop (scn,'FBX_Show_Axis')
+                if FBX_ShowAxis == True:
+                    col.prop (scn,'FBX_Axis_Forward')
+                    col.prop (scn,'FBX_Axis_Up')
+                col.prop (scn, 'FBX_Smoothing')
                 
                 #name settings
                 box6 = box.box()
@@ -2874,7 +2748,7 @@ class Mainpanel(bpy.types.Panel):
                 box7 = box.box()
                 col = box7.column()
                 col.label ("Export Directory:")
-                col.prop(scn,'FBX_Relative_Assets_Folder',text= "Relative: UE Assets") 
+                col.prop(scn,'FBX_Relative_Assets_Folder',text= "Relative: UE4 Assets") 
                 col.prop(scn,"FBX_Custom_Export_Path" ,text = "Custom Path")  
                 
                 col = box.column()
@@ -2905,7 +2779,8 @@ classes = [
     UE_Rig_Props,
     UE_New_Action_Button,
     Delete_Action_buttons,
-    UE_AutomaticBoneGroup_button        
+    UE_AutomaticBoneGroup_button,
+    UEExportCamera        
     ]     
         
         
